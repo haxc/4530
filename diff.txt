@@ -1,0 +1,795 @@
+--- feeds.conf.default	(版本 35193)
++++ feeds.conf.default	(工作副本)
+@@ -8,3 +8,5 @@
+ #src-svn xfce svn://svn.openwrt.org/openwrt/feeds/xfce
+ #src-svn lxde svn://svn.openwrt.org/openwrt/feeds/lxde
+ #src-link custom /usr/src/openwrt/custom-feed
++src-git exopenwrt https://github.com/black-roland/exOpenWrt.git
++#src-svn exfat http://exfat.googlecode.com/svn/trunk
+Index: tools/firmware-utils/src/mktplinkfw.c
+===================================================================
+--- tools/firmware-utils/src/mktplinkfw.c	(版本 35193)
++++ tools/firmware-utils/src/mktplinkfw.c	(工作副本)
+@@ -173,6 +173,12 @@
+ 		.kernel_ep	= 0x80060000,
+ 		.rootfs_ofs	= 0x100000,
+ 	}, {
++		.id		= "16Mlzma",
++		.fw_max_len	= 0xfc0000,
++		.kernel_la	= 0x80060000,
++		.kernel_ep	= 0x80060000,
++		.rootfs_ofs	= 0x100000,
++	}, {
+ 		/* terminating entry */
+ 	}
+ };
+Index: target/linux/ar71xx/image/Makefile
+===================================================================
+--- target/linux/ar71xx/image/Makefile	(版本 35193)
++++ target/linux/ar71xx/image/Makefile	(工作副本)
+@@ -849,7 +849,7 @@
+ $(eval $(call SingleProfile,TPLINKOLD,$(fs_squash),TLWR841NV15,tl-wr841nd-v1.5,TL-WR841N-v1.5,ttyS0,115200,0x08410002,2,4M))
+ 
+ $(eval $(call SingleProfile,TPLINK,$(fs_64kraw),TLMR3220,tl-mr3220-v1,TL-MR3220,ttyS0,115200,0x32200001,1,4M))
+-$(eval $(call SingleProfile,TPLINK,$(fs_64kraw),TLMR3420,tl-mr3420-v1,TL-MR3420,ttyS0,115200,0x34200001,1,4M))
++$(eval $(call SingleProfile,TPLINK,$(fs_64kraw),TLMR3420,tl-mr3420-v1,TL-MR3420,ttyS0,115200,0x34200001,1,8M))
+ $(eval $(call SingleProfile,TPLINK,$(fs_64kraw),TLWA701,tl-wa701n-v1,TL-WA901ND,ttyS0,115200,0x07010001,1,4M))
+ $(eval $(call SingleProfile,TPLINK,$(fs_64kraw),TLWA7510NV1,tl-wa7510n,TL-WA7510N,ttyS0,115200,0x75100001,1,4M))
+ $(eval $(call SingleProfile,TPLINK,$(fs_64kraw),TLWA901NV1,tl-wa901nd-v1,TL-WA901ND,ttyS0,115200,0x09010001,1,4M))
+@@ -878,7 +878,7 @@
+ $(eval $(call SingleProfile,TPLINK-LZMA,$(fs_64kraw),TLWR1041,tl-wr1041n-v2,TL-WR1041N-v2,ttyS0,115200,0x10410002,1,4Mlzma))
+ $(eval $(call SingleProfile,TPLINK-LZMA,$(fs_64kraw),TLWR2543,tl-wr2543-v1,TL-WR2543N,ttyS0,115200,0x25430001,1,8Mlzma,-v 3.13.99))
+ $(eval $(call SingleProfile,TPLINK-LZMA,$(fs_64kraw),TLWDR3600V1,tl-wdr3600-v1,TL-WDR4300,ttyS0,115200,0x36000001,1,8Mlzma))
+-$(eval $(call SingleProfile,TPLINK-LZMA,$(fs_64kraw),TLWDR4300V1,tl-wdr4300-v1,TL-WDR4300,ttyS0,115200,0x43000001,1,8Mlzma))
++$(eval $(call SingleProfile,TPLINK-LZMA,$(fs_64kraw),TLWDR4300V1,tl-wdr4300-v1,TL-WDR4300,ttyS0,115200,0x45300001,1,8Mlzma))
+ $(eval $(call SingleProfile,TPLINK-LZMA,$(fs_64kraw),TLWDR4310V1,tl-wdr4310-v1,TL-WDR4300,ttyS0,115200,0x43100001,1,8Mlzma))
+ 
+ $(eval $(call SingleProfile,UBDEV,$(fs_64k),UBDEV01,ubdev01,UBNT-UF,ttyS0,115200,XM,XM,ar7240))
+@@ -921,7 +921,7 @@
+ $(eval $(call MultiProfile,TLWR741,TLWR741NV1 TLWR741NV2 TLWR741NV4))
+ $(eval $(call MultiProfile,TLWR841,TLWR841NV15 TLWR841NV3 TLWR841NV5 TLWR841NV7 TLWR841NV8))
+ $(eval $(call MultiProfile,TLWR941,TLWR941NV2 TLWR941NV3 TLWR941NV4))
+-$(eval $(call MultiProfile,TLWDR4300,TLWDR3600V1 TLWDR4300V1 TLWDR4310V1))
++$(eval $(call MultiProfile,TLWDR4300,TLWDR4300V1))
+ $(eval $(call MultiProfile,UBNT,UBNTAIRROUTER UBNTRS UBNTRSPRO UBNTLSSR71 UBNTBULLETM UBNTROCKETM UBNTNANOM UBNTUNIFI UBNTUNIFIOUTDOOR))
+ $(eval $(call MultiProfile,WNDR3700,WNDR3700V1 WNDR3700V2 WNDR3800 WNDRMAC WNDRMACV2))
+ $(eval $(call MultiProfile,WP543,WP543_2M WP543_4M WP543_8M WP543_16M))
+Index: target/linux/ar71xx/files/arch/mips/ath79/mach-tl-wdr4300.c
+===================================================================
+--- target/linux/ar71xx/files/arch/mips/ath79/mach-tl-wdr4300.c	(版本 35193)
++++ target/linux/ar71xx/files/arch/mips/ath79/mach-tl-wdr4300.c	(工作副本)
+@@ -35,7 +35,7 @@
+ #define WDR4300_GPIO_LED_QSS		15
+ 
+ #define WDR4300_GPIO_BTN_WPS		16
+-#define WDR4300_GPIO_BTN_RFKILL		17
++#define WDR4300_GPIO_BTN_RESET		17
+ 
+ #define WDR4300_GPIO_USB1_POWER		22
+ #define WDR4300_GPIO_USB2_POWER		21
+@@ -95,11 +95,12 @@
+ 		.active_low	= 1,
+ 	},
+ 	{
+-		.desc		= "RFKILL switch",
+-		.type		= EV_SW,
+-		.code		= KEY_RFKILL,
++		.desc		= "RESET",
++		.type		= EV_KEY,
++		.code		= KEY_RESTART,
+ 		.debounce_interval = WDR4300_KEYS_DEBOUNCE_INTERVAL,
+-		.gpio		= WDR4300_GPIO_BTN_RFKILL,
++		.gpio		= WDR4300_GPIO_BTN_RESET,
++		.active_low	= 1,
+ 	},
+ };
+ 
+Index: target/linux/ar71xx/files/drivers/mtd/tplinkpart.c
+===================================================================
+--- target/linux/ar71xx/files/drivers/mtd/tplinkpart.c	(版本 35193)
++++ target/linux/ar71xx/files/drivers/mtd/tplinkpart.c	(工作副本)
+@@ -16,7 +16,7 @@
+ #include <linux/mtd/mtd.h>
+ #include <linux/mtd/partitions.h>
+ 
+-#define TPLINK_NUM_PARTS	5
++#define TPLINK_NUM_PARTS	6
+ #define TPLINK_HEADER_V1	0x01000000
+ #define MD5SUM_LEN		16
+ 
+@@ -149,7 +149,6 @@
+ 	parts[0].name = "u-boot";
+ 	parts[0].offset = 0;
+ 	parts[0].size = offset;
+-	parts[0].mask_flags = MTD_WRITEABLE;
+ 
+ 	parts[1].name = "kernel";
+ 	parts[1].offset = offset;
+@@ -162,12 +161,15 @@
+ 	parts[3].name = "art";
+ 	parts[3].offset = art_offset;
+ 	parts[3].size = TPLINK_ART_LEN;
+-	parts[3].mask_flags = MTD_WRITEABLE;
+ 
+ 	parts[4].name = "firmware";
+ 	parts[4].offset = offset;
+ 	parts[4].size = art_offset - offset;
+ 
++	parts[5].name = "fullflash";
++	parts[5].offset = 0;
++	parts[5].size = master->size;
++
+ 	vfree(header);
+ 
+ 	*pparts = parts;
+Index: target/linux/ar71xx/base-files/lib/ar71xx.sh
+===================================================================
+--- target/linux/ar71xx/base-files/lib/ar71xx.sh	(版本 35193)
++++ target/linux/ar71xx/base-files/lib/ar71xx.sh	(工作副本)
+@@ -126,7 +126,7 @@
+ 	"360000"*)
+ 		model="TP-Link TL-WDR3600"
+ 		;;
+-	"430000"*)
++	"430000"*|"453000"*)
+ 		model="TP-Link TL-WDR4300"
+ 		;;
+ 	"431000"*)
+Index: package/firewall/files/firewall.config
+===================================================================
+--- package/firewall/files/firewall.config	(版本 35193)
++++ package/firewall/files/firewall.config	(工作副本)
+@@ -22,6 +22,20 @@
+ 	option masq		1
+ 	option mtu_fix		1
+ 
++config rule
++	option target 'ACCEPT'
++	option _name 'bt'
++	option src 'wan'
++	option proto 'tcpudp'
++	option dest_port '51413'
++
++config rule
++	option target 'ACCEPT'
++	option _name '9091'
++	option src 'wan'
++	option proto 'tcp'
++	option dest_port '9091'
++
+ config forwarding
+ 	option src		lan
+ 	option dest		wan
+Index: package/uhttpd/files/uhttpd.config
+===================================================================
+--- package/uhttpd/files/uhttpd.config	(版本 35193)
++++ package/uhttpd/files/uhttpd.config	(工作副本)
+@@ -42,8 +42,8 @@
+ 
+ 	# Lua url prefix and handler script.
+ 	# Lua support is disabled if no prefix given.
+-#	option lua_prefix	/luci
+-#	option lua_handler	/usr/lib/lua/luci/sgi/uhttpd.lua
++	option lua_prefix	/luci
++	option lua_handler	/usr/lib/lua/luci/sgi/uhttpd.lua
+ 
+ 	# CGI/Lua timeout, if the called script does not
+ 	# write data within the given amount of seconds,
+Index: package/madwifi/files/lib/wifi/madwifi.sh
+===================================================================
+--- package/madwifi/files/lib/wifi/madwifi.sh	(版本 35193)
++++ package/madwifi/files/lib/wifi/madwifi.sh	(工作副本)
+@@ -483,7 +483,7 @@
+ 	option macaddr	$(cat /sys/class/net/${dev}/address)
+ $EXTRA_DEV
+ 	# REMOVE THIS LINE TO ENABLE WIFI:
+-	option disabled 1
++	option disabled 0
+ 
+ config wifi-iface
+ 	option device	radio$devidx
+Index: package/busybox/Makefile
+===================================================================
+--- package/busybox/Makefile	(版本 35193)
++++ package/busybox/Makefile	(工作副本)
+@@ -15,7 +15,7 @@
+ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
+ PKG_SOURCE_URL:=http://www.busybox.net/downloads \
+ 		http://distfiles.gentoo.org/distfiles/
+-PKG_MD5SUM:=9c0cae5a0379228e7b55e5b29528df8e
++PKG_MD5SUM:=1ee6f98ceff844e520f793f3cbfad48d
+ 
+ PKG_BUILD_DEPENDS:=BUSYBOX_CONFIG_FEATURE_HAVE_RPC:librpc
+ PKG_BUILD_PARALLEL:=1
+Index: package/block-mount/Makefile
+===================================================================
+--- package/block-mount/Makefile	(版本 35193)
++++ package/block-mount/Makefile	(工作副本)
+@@ -21,7 +21,7 @@
+ define Package/block-mount
+   $(call Package/block-mount/Default)
+   TITLE:=Block device mounting and checking
+-  DEPENDS:= +blkid +swap-utils 
++  DEPENDS:= +blkid +swap-utils +lsusb
+   MENU:=1
+ endef
+ 
+Index: package/block-mount/files/mount.sh
+===================================================================
+--- package/block-mount/files/mount.sh	(版本 35193)
++++ package/block-mount/files/mount.sh	(工作副本)
+@@ -31,41 +31,33 @@
+ 		
+ 		found_device="$(libmount_find_device_by_id "$uuid" "$label" "$device" "$cfgdevice")"
+ 		if [ -n "$found_device" ]; then
+-			if [ "$find_rootfs" != "1" ] || ( [ "$is_rootfs" -eq 1 ] || [ "$target" = "/" ] || [ "$target" = "/overlay" ] ); then
++			if [ -z "$find_rootfs" ] || [ "$find_rootfs" -eq 0 ] || [ "$is_rootfs" -eq 1 ]; then
+ 				[ "$enabled_fsck" -eq 1 ] && {
+ 					grep -q "$found_device" /proc/swaps || grep -q "$found_device" /proc/mounts || {
+ 						libmount_fsck "$found_device" "$fstype" "$enabled_fsck"
+ 					}
+ 				}								
+ 	
+-				if [ "$find_rootfs" = "1" ]; then
+-				    if [ "$is_rootfs" -eq 1 ]; then
++				[ "$is_rootfs" -eq 1 ] && [ "$find_rootfs" -eq 1 ] && {
+ 					target=/overlay
+-				    elif [ "$target" = "/" ]; then
+-					target=/rom
+-				    fi
+-				else
+-				    if [ "$is_rootfs" -eq 1 ] || [ "$target" = "/overlay" ]; then
+-					target=/tmp/overlay-disabled
+-				    elif [ "$target" = "/" ] || [ "$target" = "/rom" ]; then
+-					target="/tmp/whole_root-disabled"
+-				    fi
+-				fi
++				}
+ 				
+ 				config_create_mount_fstab_entry "$found_device" "$target" "$fstype" "$options" "$enabled" 
+-				grep -q "$found_device" /proc/swaps || grep -q "$found_device" /proc/mounts || {
+-					[ "$enabled" -eq 1 ] && mkdir -p "$target" && mount "$target" 2>&1 | tee /proc/self/fd/2 | logger -t 'fstab'
++				grep -q "$found_device" /proc/mounts || {
++					[ "$enabled" -eq 1 ] && mkdir -p "$target" && {
++						case "$fstype" in
++							'ntfs')
++								mount.ntfs-3g -o "$options" $found_device $target 2>&1 | tee /proc/self/fd/2 | logger -t 'fstab';;
++							*)	
++								mount -t "$fstype" -o "$options" $found_device $target 2>&1 | tee /proc/self/fd/2 | logger -t 'fstab';;
++						esac
++					}
+ 				}
+ 				
+ 			fi
+ 		fi
+-		[ "$find_rootfs" = "1" ] && {
+-		    [ "$target" = "/overlay" ] && {
++		[ "$is_rootfs" -eq 1 ] && [ "$find_rootfs" -eq 1 ] && {
+ 			rootfs_found=1
+-		    }
+-		    [ "$target" = "/rom" ] && {
+-			rootfs_found=1
+-		    }
+ 		}
+ 		return 0	
+ 	}
+Index: package/block-mount/files/40-mount
+===================================================================
+--- package/block-mount/files/40-mount	(版本 35193)
++++ package/block-mount/files/40-mount	(工作副本)
+@@ -3,10 +3,74 @@
+ # Copyright (C) 2010 Vertical Communications
+ # This is free software, licensed under the GNU General Public License v2.
+ # See /LICENSE for more information.
+-#
++# Modified By RA
+ 
+ . /lib/functions/block.sh
+ 
++set_devices(){
++	set_section=$(uci show fstab | grep "$get_uuid" | awk -F "." '{print $2}')
++	old_device=$(uci get fstab.${set_section}.device)
++	[ "$old_device" != "/dev/$device" ]&&{
++		uci set fstab.${set_section}.device="/dev/$device"
++		uci commit fstab
++	}
++}
++
++set_fstab(){
++
++	isext4=$(blkid | grep "/dev/$device" | grep -ci ext4)
++	isext3=$(blkid | grep "/dev/$device" | grep -ci ext3)
++	isext2=$(blkid | grep "/dev/$device" | grep -ci ext2)
++	isntfs=$(blkid | grep "/dev/$device" | grep -ci ntfs)
++	isvfat=$(blkid | grep "/dev/$device" | grep -ci vfat)
++	isexfat=$(blkid | grep "/dev/$device" | grep -ci exfat)
++
++	if [ "$isntfs" -ge 1 ] ; then
++		my_fstype='ntfs'
++	elif [ "$isvfat" -ge 1 ] ; then
++		my_fstype='vfat'
++	elif [ "$isexfat" -ge 1 ] ; then
++		my_fstype='exfat'
++	elif [ "$isext2" -ge 1 ] ; then
++		my_fstype='ext2'
++	elif [ "$isext3" -ge 1 ] ; then
++		my_fstype='ext3'
++	elif [ "$isext4" -ge 1 ] ; then
++		my_fstype='ext4'
++	fi
++
++	[ ! -z "$my_fstype" ] && {
++		
++		n=$(uci show fstab | grep "fstab.@mount" | grep -c "=mount")
++		m=$((n+1))
++
++		uci add fstab mount
++		uci set fstab.@mount[$n]="mount"
++		uci set fstab.@mount[$n].enabled=1
++		uci set fstab.@mount[$n].device="/dev/$device"
++		uci set fstab.@mount[$n].uuid="${get_uuid}"
++		uci set fstab.@mount[$n].target="/mnt/sda${m}"
++		uci set fstab.@mount[$n].fstype="$my_fstype"
++
++		case "$my_fstype" in
++			'ext2')
++				uci set fstab.@mount[$n].options="noatime,barrier=0,data=writeback,commit=60";;
++			'ext3')
++				uci set fstab.@mount[$n].options="noatime,barrier=0,data=writeback,commit=60";;
++			'ext4')
++				uci set fstab.@mount[$n].options="noatime,journal_async_commit,nodelalloc,data=writeback,barrier=0,commit=60";;
++			'ntfs')
++				uci set fstab.@mount[$n].options="noatime,nls=utf8";;
++			'vfat')
++				uci set fstab.@mount[$n].options="utf8=1,umask=0000,dmask=0000,fmask=0000";;
++			'exfat')
++				uci set fstab.@mount[$n].options="utf8=1,umask=0000,dmask=0000,fmask=0000";;
++		esac
++
++		uci commit fstab
++	}
++}
++
+ blkdev=`dirname $DEVPATH`
+ if [ `basename $blkdev` != "block" ]; then
+ 
+@@ -15,7 +79,12 @@
+ 
+     case "$ACTION" in
+ 	add)
+-
++		get_uuid=`blkid | grep "/dev/${device}" | awk -F "UUID=" '{print $2}'| awk -F "\"" '{print $2}'`
++		[ -n "$get_uuid" ] && {
++			have_uuid=$(uci show fstab | grep -c "$get_uuid")
++			[ "$have_uuid" = "0" ] && set_fstab
++			[ "$have_uuid" != "0" ] && set_devices
++		}
+ 		local from_fstab
+ 		local anon_mount
+ 		local anon_swap
+@@ -35,6 +104,7 @@
+     		mds_mount_target="$2"
+ 			mds_mount_device="$3"
+ 			mds_mount_fstype="$4"
++			mds_mount_options="$5"
+ 			mds_mount_enabled="$6"
+ 	    }
+ 
+@@ -50,13 +120,20 @@
+ 			use_device="$mds_mount_device"
+ 			[ "$mds_mount_enabled" -eq 1 ] && {
+ 				if [ -n "$mds_mount_target" ]; then
+-					grep -q "/dev/$device" /proc/swaps || grep -q "/dev/$device" /proc/mounts || {
+-						( mkdir -p "$mds_mount_target" && mount "$mds_mount_target" ) 2>&1 | tee /proc/self/fd/2 | logger -t 'fstab'
++					grep -q "/dev/$device" /proc/mounts || {
++						mkdir -p "$mds_mount_target"
++						case "$mds_mount_fstype" in
++							'ntfs')
++								mount.ntfs-3g -o "$mds_mount_options" /dev/$device $mds_mount_target 2>&1 | tee /proc/self/fd/2 | logger -t 'fstab';;
++							*)
++								mount -t "$mds_mount_fstype" -o "$mds_mount_options" /dev/$device $mds_mount_target 2>&1 | tee /proc/self/fd/2 | logger -t 'fstab';;
++						esac										
+ 					}
+ 				else
+ 					logger -t 'fstab' "Mount enabled for $mds_mount_device but it doesn't have a defined mountpoint (target)"
+ 				fi
+ 			}
++			pgrep aria2c >/dev/null 2>&1 || /etc/init.d/aria2 start
+ 		}
+ 
+ 		[ -z "$use_device" ] && {
+@@ -68,8 +145,8 @@
+ 				use_device="$sds_swap_device"
+ 			}
+ 		}
+-		
+-		grep -q "/dev/$device" /proc/swaps || grep -q "/dev/$device" /proc/mounts || {
++
++		grep -q "/dev/$device" /proc/mounts || {
+ 			[ "$anon_mount" -eq 1 -a -z "$use_device" ] && {
+ 				case "$device" in
+ 					mtdblock*) ;;
+@@ -82,10 +159,11 @@
+ 		reset_dev_section_cb
+ 		;;
+ 	remove)
++		killall -2 aria2c
++		sleep 3
+ 		umount /dev/$device
+ 		umount $mountpoint
+ 		;;
+     esac	
+ 
+ fi
+-
+Index: package/block-mount/files/fstab.init
+===================================================================
+--- package/block-mount/files/fstab.init	(版本 35193)
++++ package/block-mount/files/fstab.init	(工作副本)
+@@ -7,7 +7,6 @@
+ 
+ 
+ START=20
+-
+ EXTRA_COMMANDS="overlay_enable whole_root_enable"
+ EXTRA_HELP="        overlay_enable    Reenable overlay rootfs. (After you fix it).
+         whole_root_enable Reenable whole-disk rootfs.  (After you fix it)."
+@@ -48,8 +47,11 @@
+ 
+ 	config_get target "$cfg" target
+ 	config_get_bool enabled "$cfg" "enabled" '1'
+-	[ -n "$target" -a "$enabled" -gt 0 ] || return 0
+-	umount $target
++	config_get uuid "$cfg" uuid
++	nowdevice="$(blkid | grep "UUID=\"$uuid\"" |cut -f1 -d: )"
++	nowtarget=$(df |grep $nowdevice| awk '{ print $6 }')
++	[ "$enabled" -ne "1" ] && umount -l $nowtarget
++	[  "$target" != "$nowtarget" ] && umount -l $nowtarget
+ }
+ 	
+ do_swapoff() {
+@@ -85,4 +87,8 @@
+ 	swapoff -a
+ }
+ 
+-
++restart() {
++	stop
++	sleep 1
++	start
++}
+Index: package/block-mount/files/fstab.config
+===================================================================
+--- package/block-mount/files/fstab.config	(版本 35193)
++++ package/block-mount/files/fstab.config	(工作副本)
+@@ -1,20 +1,9 @@
+ config global automount
+ 	option from_fstab 1
+-	option anon_mount 1
++	option anon_mount 0
+ 	
+ config global autoswap
+ 	option from_fstab 1
+ 	option anon_swap 0
+-	
+-config mount
+-	option target	/home
+-	option device	/dev/sda1
+-	option fstype	ext4
+-	option options	rw,sync
+-	option enabled	0
+-	option enabled_fsck 0
+ 
+-config swap
+-	option device	/dev/sda2
+-	option enabled	0
+ 
+Index: package/block-mount/files/block.sh
+===================================================================
+--- package/block-mount/files/block.sh	(版本 35193)
++++ package/block-mount/files/block.sh	(工作副本)
+@@ -157,7 +157,7 @@
+ 	local token="$1"
+ 	local value="$2"
+ 	local device
+-	device="$(blkid -w /dev/null -c /dev/null | grep "$token=\"$value\"" | cut -f1 -d:)"
++	device="$(blkid | grep "$token=\"$value\"" | cut -f1 -d:)"
+ 	echo "$device"
+ }
+ 
+@@ -225,8 +225,10 @@
+ 		return 0	
+ 	}
+ 	config_foreach config_get_mount mount "$msbd_device"
+-	[ -n "$msbd_mount_device" ] && config_create_mount_fstab_entry "$msbd_mount_device" "$msbd_target" "$msbd_fstype" "$msbd_options" "$msbd_enabled" 
+-	mount_dev_section_cb "$msbd_mount_cfg" "$msbd_target" "$msbd_mount_device" "$msbd_fstype" "$msbd_options" "$msbd_enabled" "$msbd_enabled_fsck" "$msbd_uuid" "$msbd_label" "$msbd_is_rootfs"
++	[ "$msbd_is_rootfs" -gt 0 ] || {
++		[ -n "$msbd_mount_device" ] && config_create_mount_fstab_entry "$msbd_mount_device" "$msbd_target" "$msbd_fstype" "$msbd_options" "$msbd_enabled" 
++		mount_dev_section_cb "$msbd_mount_cfg" "$msbd_target" "$msbd_mount_device" "$msbd_fstype" "$msbd_options" "$msbd_enabled" "$msbd_enabled_fsck" "$msbd_uuid" "$msbd_label" "$msbd_is_rootfs"
++	}
+ 	reset_block_cb
+ }
+ 
+Index: package/openssl/Makefile
+===================================================================
+--- package/openssl/Makefile	(版本 35193)
++++ package/openssl/Makefile	(工作副本)
+@@ -110,7 +110,7 @@
+ 	)
+ endef
+ 
+-TARGET_CFLAGS += $(FPIC)
++TARGET_CFLAGS += $(FPIC) -DOPENSSL_THREADS -pthread -D_REENTRANT -D_THREAD_SAFE -D_THREADSAFE
+ 
+ define Build/Compile
+ 	# XXX: OpenSSL "make depend" will look for installed headers before its own,
+Index: package/kernel/modules/nls.mk
+===================================================================
+--- package/kernel/modules/nls.mk	(版本 35193)
++++ package/kernel/modules/nls.mk	(工作副本)
+@@ -99,7 +99,21 @@
+ 
+ $(eval $(call KernelPackage,nls-cp866))
+ 
++define KernelPackage/nls-cp936
++  SUBMENU:=Native Language Support
++  TITLE:=Codepage 936 (china)
++  KCONFIG:=CONFIG_NLS_CODEPAGE_936
++  FILES:=$(LINUX_DIR)/fs/nls/nls_cp936.ko
++  AUTOLOAD:=$(call AutoLoad,25,nls_cp936)
++  $(call AddDepends/nls)
++endef
+ 
++define KernelPackage/nls-cp936/description
++  Kernel module for NLS Codepage 936 (china)
++endef
++
++$(eval $(call KernelPackage,nls-cp936))
++
+ define KernelPackage/nls-cp1250
+   SUBMENU:=Native Language Support
+   TITLE:=Codepage 1250 (Eastern Europe)
+Index: package/base-files/files/lib/functions.sh
+===================================================================
+--- package/base-files/files/lib/functions.sh	(版本 35193)
++++ package/base-files/files/lib/functions.sh	(工作副本)
+@@ -6,9 +6,6 @@
+ debug () {
+ 	${DEBUG:-:} "$@"
+ }
+-mount() {
+-	busybox mount "$@"
+-}
+ 
+ # newline
+ N="
+@@ -200,7 +197,7 @@
+ 	[ -z "$len" ] && return 0
+ 	while [ $c -le "$len" ]; do
+ 		config_get val "${section}" "${option}_ITEM$c"
+-		eval "$function \"\$val\" \"$@\""
++		eval "$function \"\$val\" \"\$@\""
+ 		c="$(($c + 1))"
+ 	done
+ }
+@@ -220,15 +217,29 @@
+ 	done
+ }
+ 
++find_mtd_index() {
++	local PART="$(grep "\"$1\"" /proc/mtd | awk -F: '{print $1}')"
++	local INDEX="${PART##mtd}"
++
++	echo ${INDEX}
++}
++
+ find_mtd_part() {
+-	local PART="$(grep "\"$1\"" /proc/mtd | awk -F: '{print $1}')"
++	local INDEX=$(find_mtd_index "$1")
+ 	local PREFIX=/dev/mtdblock
+ 
+-	PART="${PART##mtd}"
+ 	[ -d /dev/mtdblock ] && PREFIX=/dev/mtdblock/
+-	echo "${PART:+$PREFIX$PART}"
++	echo "${INDEX:+$PREFIX$INDEX}"
+ }
+ 
++find_mtd_chardev() {
++	local INDEX=$(find_mtd_index "$1")
++	local PREFIX=/dev/mtd
++
++	[ -d /dev/mtd ] && PREFIX=/dev/mtd/
++	echo "${INDEX:+$PREFIX$INDEX}"
++}
++
+ strtok() { # <string> { <variable> [<separator>] ... }
+ 	local tmp
+ 	local val="$1"
+@@ -337,4 +348,141 @@
+ 	return 0
+ }
+ 
++#!/bin/sh
++# Copyright (C) 2006-2010 OpenWrt.org
++# Copyright (C) 2010 Vertical Communications
++
++boot_hook_splice_start() {
++	export -n PI_HOOK_SPLICE=1
++}
++
++boot_hook_splice_finish() {
++	local hook
++	for hook in $PI_STACK_LIST; do
++		local v; eval "v=\${${hook}_splice:+\$${hook}_splice }$hook"
++		export -n "${hook}=${v% }"
++		export -n "${hook}_splice="
++	done
++	export -n PI_HOOK_SPLICE=
++}
++
++boot_hook_init() {
++	local hook="${1}_hook"
++	export -n "PI_STACK_LIST=${PI_STACK_LIST:+$PI_STACK_LIST }$hook"
++	export -n "$hook="
++}
++
++boot_hook_add() {
++	local hook="${1}_hook${PI_HOOK_SPLICE:+_splice}"
++	local func="${2}"
++
++	[ -n "$func" ] && {
++		local v; eval "v=\$$hook"
++		export -n "$hook=${v:+$v }$func"
++	}
++}
++
++boot_hook_shift() {
++	local hook="${1}_hook"
++	local rvar="${2}"
++
++	local v; eval "v=\$$hook"
++	[ -n "$v" ] && {
++		local first="${v%% *}"
++
++		[ "$v" != "${v#* }" ] && \
++			export -n "$hook=${v#* }" || \
++			export -n "$hook="
++
++		export -n "$rvar=$first"
++		return 0
++	}
++
++	return 1
++}
++
++boot_run_hook() {
++	local hook="$1"
++	local func
++
++	while boot_hook_shift "$hook" func; do
++		local ran; eval "ran=\$PI_RAN_$func"
++		[ -n "$ran" ] || {
++			export -n "PI_RAN_$func=1"
++			$func "$1" "$2"
++		}
++	done
++}
++
++jffs2_ready () {
++	mtdpart="$(find_mtd_part rootfs_data)"
++	[ -z "$mtdpart" ] && return 1
++	magic=$(hexdump $mtdpart -n 4 -e '4/1 "%02x"')
++	[ "$magic" != "deadc0de" ]
++}
++
++dupe() { # <new_root> <old_root>
++	cd $1
++	echo -n "creating directories... "
++	{
++		cd $2
++		find . -xdev -type d
++		echo "./dev ./overlay ./mnt ./proc ./tmp"
++		# xdev skips mounted directories
++		cd $1
++	} | xargs mkdir -p
++	echo "done"
++
++	echo -n "setting up symlinks... "
++	for file in $(cd $2; find . -xdev -type f;); do
++		case "$file" in
++		./rom/note) ;; #nothing
++		./etc/config*|\
++		./usr/lib/opkg/info/*) cp -af $2/$file $file;;
++		*) ln -sf /rom/${file#./*} $file;;
++		esac
++	done
++	for file in $(cd $2; find . -xdev -type l;); do
++		cp -af $2/${file#./*} $file
++	done
++	echo "done"
++}
++
++pivot() { # <new_root> <old_root>
++	mount -o noatime,move /proc $1/proc && \
++	pivot_root $1 $1$2 && {
++		mount -o noatime,move $2/dev /dev
++		mount -o noatime,move $2/tmp /tmp
++		mount -o noatime,move $2/sys /sys 2>&-
++		mount -o noatime,move $2/overlay /overlay 2>&-
++		return 0
++	}
++}
++
++fopivot() { # <rw_root> <ro_root> <dupe?>
++	root=$1
++	{
++		if grep -q overlay /proc/filesystems; then
++			mount -o noatime,lowerdir=/,upperdir=$1 -t overlayfs "overlayfs:$1" /mnt && root=/mnt
++		elif grep -q mini_fo /proc/filesystems; then
++			mount -t mini_fo -o noatime,base=/,sto=$1 "mini_fo:$1" /mnt 2>&- && root=/mnt
++		else
++			mount --bind -o noatime / /mnt
++			mount --bind -o noatime,union "$1" /mnt && root=/mnt
++		fi
++	} || {
++		[ "$3" = "1" ] && {
++		mount | grep "on $1 type" 2>&- 1>&- || mount -o noatime,bind $1 $1
++		dupe $1 $rom
++		}
++	}
++	pivot $root $2
++}
++
++ramoverlay() {
++	mkdir -p /tmp/root
++	mount -t tmpfs -o noatime,mode=0755 root /tmp/root
++	fopivot /tmp/root /rom 1
++}
++
+ [ -z "$IPKG_INSTROOT" -a -f /lib/config/uci.sh ] && . /lib/config/uci.sh
+Index: package/ppp/Makefile
+===================================================================
+--- package/ppp/Makefile	(版本 35193)
++++ package/ppp/Makefile	(工作副本)
+@@ -34,14 +34,14 @@
+ 
+ define Package/ppp
+ $(call Package/ppp/Default)
+-  DEPENDS:=+kmod-ppp
++  DEPENDS:=+kmod-ppp +libpthread
+   TITLE:=PPP daemon
+   VARIANT:=default
+ endef
+ 
+ define Package/ppp-multilink
+ $(call Package/ppp/Default)
+-  DEPENDS:=+kmod-ppp
++  DEPENDS:=+kmod-ppp +libpthread
+   TITLE:=PPP daemon (with multilink support)
+   VARIANT:=multilink
+ endef
+Index: package/mac80211/files/lib/wifi/mac80211.sh
+===================================================================
+--- package/mac80211/files/lib/wifi/mac80211.sh	(版本 35193)
++++ package/mac80211/files/lib/wifi/mac80211.sh	(工作副本)
+@@ -573,7 +573,7 @@
+ 			[ "$(($ht_cap & 768))" -eq 768 ] && append ht_capab "$list	RX-STBC123" "$N"
+ 			[ "$(($ht_cap & 4096))" -eq 4096 ] && append ht_capab "$list	DSSS_CCK-40" "$N"
+ 		}
+-		iw phy "$dev" info | grep -q '2412 MHz' || { mode_band="a"; channel="36"; }
++		iw phy "$dev" info | grep -q '2412 MHz' || { mode_band="a"; channel="153"; }
+ 
+ 		cat <<EOF
+ config wifi-device  radio$devidx
+@@ -583,7 +583,10 @@
+ 	option hwmode	11${mode_11n}${mode_band}
+ $ht_capab
+ 	# REMOVE THIS LINE TO ENABLE WIFI:
+-	option disabled 1
++	option disabled 0
++	option noscan 1
++	option txpower 20
++	option htmode HT40-
+ 
+ config wifi-iface
+ 	option device   radio$devidx
