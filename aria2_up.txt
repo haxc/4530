@@ -1,0 +1,1 @@
+sudo apt-get install autoconf automake libcppunit-dev  autopoint openssl libtool sphinx-common sphinxsearch libgcrypt11-dev libxml2-dev pkg-config
